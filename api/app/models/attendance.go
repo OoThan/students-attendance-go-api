@@ -7,14 +7,14 @@ import (
 )
 
 type Attendance struct {
-	ID uint32 `gorm:"primary_key;auto_increment" json:"id"`
-	Status bool `gorm:"not null" json:"status"`
-	TeacherID uint32 `gorm:"not null" json:"teacher_id"`
-	Teacher Teacher `json:"teacher"`
-	StudentRollNo string `gorm:"not null" json:"student_roll_no"`
-	Student Student `json:"student"`
-	UpdateAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"update_at"`
-	DeleteAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"delete_at"`
+	ID            uint32    `gorm:"primary_key;auto_increment" json:"id"`
+	Status        bool      `gorm:"not null" json:"status"`
+	TeacherID     uint32    `gorm:"not null" json:"teacher_id"`
+	Teacher       Teacher   `json:"teacher"`
+	StudentRollNo string    `gorm:"not null" json:"student_roll_no"`
+	Student       Student   `json:"student"`
+	UpdateAt      time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"update_at"`
+	DeleteAt      time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"delete_at"`
 }
 
 func (attendance *Attendance) SaveAttendance(db *gorm.DB, student_roll_no string) (*Attendance, error) {
@@ -32,15 +32,19 @@ func (attendance *Attendance) SaveAttendance(db *gorm.DB, student_roll_no string
 		if err != nil {
 			return &Attendance{}, err
 		}
+		err = db.Debug().Model(&Faculty{}).Where("id = ?", attendance.Teacher.FacultyID).Take(&attendance.Teacher.Faculty).Error
+		if err != nil {
+			return &Attendance{}, err
+		}
 	}
 	return attendance, nil
 }
 
-func (attendance *Attendance) FindAllAttendance(db *gorm.DB) (*[]Attendance, error) {
+func (attendance *Attendance) FindAllAttendances(db *gorm.DB) (*[]Attendance, error) {
 	var err error
 	attendances := []Attendance{}
 	err = db.Debug().Model(&Attendance{}).Limit(100).Find(&attendances).Error
-	fmt.Println(attendances)
+	fmt.Println(attendances, len(attendances))
 	if err != nil {
 		return &[]Attendance{}, err
 	}
@@ -51,6 +55,10 @@ func (attendance *Attendance) FindAllAttendance(db *gorm.DB) (*[]Attendance, err
 				return &[]Attendance{}, err
 			}
 			err = db.Debug().Model(&Student{}).Where("roll_no = ?", attendances[i].StudentRollNo).Take(&attendances[i].Student).Error
+			if err != nil {
+				return &[]Attendance{}, err
+			}
+			err = db.Debug().Model(&Faculty{}).Where("id = ?", attendances[i].Teacher.FacultyID).Take(&attendances[i].Teacher.Faculty).Error
 			if err != nil {
 				return &[]Attendance{}, err
 			}
@@ -71,6 +79,10 @@ func (attendance *Attendance) FindAttendanceByID(db *gorm.DB, aid uint32) (*Atte
 			return &Attendance{}, err
 		}
 		err = db.Debug().Model(&Student{}).Where("roll_no = ?", attendance.StudentRollNo).Take(&attendance.Student).Error
+		if err != nil {
+			return &Attendance{}, err
+		}
+		err = db.Debug().Model(&Faculty{}).Where("id = ?", attendance.Teacher.FacultyID).Take(&attendance.Teacher.Faculty).Error
 		if err != nil {
 			return &Attendance{}, err
 		}
@@ -96,6 +108,10 @@ func (attendance *Attendance) SetAbsent(db *gorm.DB) (*Attendance, error) {
 		if err != nil {
 			return &Attendance{}, err
 		}
+		err = db.Debug().Model(&Faculty{}).Where("id = ?", attendance.Teacher.FacultyID).Take(&attendance.Teacher.Faculty).Error
+		if err != nil {
+			return &Attendance{}, err
+		}
 	}
 	return attendance, nil
 }
@@ -115,6 +131,10 @@ func (attendance *Attendance) SetPresent(db *gorm.DB) (*Attendance, error) {
 			return &Attendance{}, err
 		}
 		err = db.Debug().Debug().Model(&Student{}).Where("roll_no = ?", attendance.StudentRollNo).Take(&attendance.Student).Error
+		if err != nil {
+			return &Attendance{}, err
+		}
+		err = db.Debug().Model(&Faculty{}).Where("id = ?", attendance.Teacher.FacultyID).Take(&attendance.Teacher.Faculty).Error
 		if err != nil {
 			return &Attendance{}, err
 		}
