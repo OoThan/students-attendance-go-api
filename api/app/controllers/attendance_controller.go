@@ -71,7 +71,7 @@ func (server *Server) CreateAttendance(w http.ResponseWriter, r *http.Request) {
 
 func (server *Server) GetAllAttendances(w http.ResponseWriter, r *http.Request) {
 	attendance := models.Attendance{}
-	attendances, err := attendance.FindAllAttendance(server.DB)
+	attendances, err := attendance.FindAllAttendances(server.DB)
 	if err != nil {
 		responses.ERROR(w, http.StatusInternalServerError, err)
 		return
@@ -159,7 +159,7 @@ func (server *Server) DeleteAttendance(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	aid, err := strconv.ParseUint(vars["id"], 10, 32)
 	if err != nil {
-		 responses.ERROR(w, http.StatusBadRequest, err)
+		responses.ERROR(w, http.StatusBadRequest, err)
 		return
 	}
 	tid, err := auth.ExtractTeacherTokenID(r)
@@ -180,6 +180,11 @@ func (server *Server) DeleteAttendance(w http.ResponseWriter, r *http.Request) {
 	attendanceDeleted, err := attendance.DeleteAttendance(server.DB, uint32(aid), tid)
 	if err != nil {
 		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+	err = server.DB.Model(&models.Faculty{}).Where("id = ?", attendanceDeleted.Teacher.FacultyID).Take(&attendanceDeleted.Teacher.Faculty).Error
+	if err != nil {
+		responses.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized "))
 		return
 	}
 	w.Header().Set("Entity", fmt.Sprintf("%d", aid))
